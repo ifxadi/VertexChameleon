@@ -325,6 +325,7 @@ VCP_CreateFrame_Gradient_2ColourContent()
 				-marginWidth 4
 				-marginHeight 4;
 		columnLayout -columnAlign "center" -adjustableColumn true -rowSpacing 4;
+		checkBox -label "Convert Linear values to sRGB" -value true "linearTosrgb";
 
 			rowLayout -numberOfColumns 3 -columnAlign 2 "center" -cw3 100 60 100 -adjustableColumn3 2
 				-columnAttach 1 "both" 2 -columnAttach 2 "both" 2 -columnAttach 3 "both" 2
@@ -685,22 +686,45 @@ VCP_BuildGradientCommand()
 	eval $command;
 }
 
-global proc 
-VCP_ColourCanvasChoose(string $rgbCanvas, string $alphaCanvas)
+global proc VCP_ColourCanvasChoose(string $rgbCanvas, string $alphaCanvas)
 {
-	float $colorTmp[] = `canvas -query -rgbValue $rgbCanvas`;
-	float $alphaTmp[] = `canvas -query -rgbValue $alphaCanvas`;
-	colorEditor -rgbValue $colorTmp[0] $colorTmp[1] $colorTmp[2] -alpha $alphaTmp[0];;
+    // Query the current RGB and Alpha values from the canvases
+    float $colorTmp[] = `canvas -query -rgbValue $rgbCanvas`;
+    float $alphaTmp[] = `canvas -query -rgbValue $alphaCanvas`;
 
-	if (`colorEditor -query -result`)
-	{
-		float $rgb[] = `colorEditor -query -rgbValue`;
-		float $alpha = `colorEditor -query -alpha`;
+    // Open the color editor with the current color and alpha
+    colorEditor -rgbValue $colorTmp[0] $colorTmp[1] $colorTmp[2] -alpha $alphaTmp[0];
 
-		canvas -edit -rgbValue $rgb[0] $rgb[1] $rgb[2] $rgbCanvas;
-		canvas -edit -rgbValue $alpha $alpha $alpha $alphaCanvas;
-	}
+    // Check if the user confirmed the color selection
+    if (`colorEditor -query -result`)
+    {
+        // Retrieve the selected RGB and Alpha values from the color editor
+        float $rgb[] = `colorEditor -query -rgbValue`;
+        float $alpha = `colorEditor -query -alpha`;
+
+        // Query the checkbox value by its name
+        if (`checkBox -query -value "linearTosrgb"`)
+        {
+            // Convert each RGB component from linear to sRGBss
+            for ($i = 0; $i < 3; $i++) {
+                if ($rgb[$i] <= 0.0031308) {
+                    $rgb[$i] = 12.92 * $rgb[$i];
+                } else {
+                    $rgb[$i] = 1.055 * pow($rgb[$i], (1.0 / 2.4)) - 0.055;
+                }
+            }
+        }
+
+        // Update the RGB canvas with the converted sRGB values
+        canvas -edit -rgbValue $rgb[0] $rgb[1] $rgb[2] $rgbCanvas;
+
+        // Update the Alpha canvas (assuming alpha remains unchanged)
+        canvas -edit -rgbValue $alpha $alpha $alpha $alphaCanvas;
+    }
 }
+
+
+
 
 global proc
 VCP_SwapCanvas(string $rgbCanvas1, string $alphaCanvas1, string $rgbCanvas2, string $alphaCanvas2)

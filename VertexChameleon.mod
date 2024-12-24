@@ -1,1 +1,1 @@
-+ MAYAVERSION:2018 VertexChameleon 1.0 <PATH>
++ MAYAVERSION:2018 VertexChameleon 1.1 <PATH>
